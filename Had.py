@@ -1,85 +1,97 @@
-import random as rd
 import tkinter as tk
+import random
 
 WIDTH = 300
 HEIGHT = 300
-cell = 30
+VELIKOST_BUNKY = 30 
 
-class Snake:
+class Had:
     def __init__(self):
-        # self.length
-        self.position = [(5,5)] #pocatecni pozice hada
-        self.direct = (0,1)
+        self.telo = [(5, 5)] 
+        self.smer = (0, 1)  
 
-    def move(self):
-        head = self.position[0]
-        new_head = (head[0] + self.direct[0], head[1] + self.direct[1]) #nova pozice hlavy
-        self.position = [new_head] + self.position[:-1]
+    def pohyb(self):
+        hlava = self.telo[0]
+        nova_hlava = (hlava[0] + self.smer[0], hlava[1] + self.smer[1])
+        self.telo = [nova_hlava] + self.telo[:-1]
 
-    def nomnomnom(self):
-        self.position.append(self.position[-1])
+    def zvetseni(self):
+        self.telo.append(self.telo[-1])
 
-class Food:
+    def kys(self):
+        return self.telo[1:]  
+
+    def kolize(self):
+        if self.telo[0] in self.kys(): 
+            exit()  
+
+class Jidlo:
     def __init__(self):
-        self.new_food()
+        self.nove_jidlo()
 
-    def new_food(self):
-        self.position = (rd.randint(0,(WIDTH//30)), rd.randint(0,(HEIGHT//30)))
+    def nove_jidlo(self):
+        self.pozice = (random.randint(0, (WIDTH // VELIKOST_BUNKY) - 1),
+                       random.randint(0, (HEIGHT // VELIKOST_BUNKY) - 1))
 
-class Game:
+class Hra:
     def __init__(self, root):
-        self.root = root
-        self.canvas = tk.Canvas(self.root, width = WIDTH, height = HEIGHT, bg="black")
-        self.snake = Snake()
-        self.food = Food()
-        self.waiting = False
-        self.new_field()
-        self.root.bind("<KeyPress>", self.change_direct)
-        self.new_field()
+        self.root = root 
+        self.canvas = tk.Canvas(root, width=WIDTH, height=HEIGHT, bg="#D1FFBD")
+        self.canvas.pack() 
 
-    def new_field(self):
+        self.had = Had()
+        self.jidlo = Jidlo()
+        self.pohyb_cekajici = False
+
+        self.root.bind("<KeyPress>", self.zmena_smeru)
+        
+        self.vykresli_hraci_pole()
+
+    def zmena_smeru(self, event): 
+        if event.keysym == 'Up':
+            self.had.smer = (0, -1)
+        elif event.keysym == 'Down':
+            self.had.smer = (0, 1)
+        elif event.keysym == 'Left':
+            self.had.smer = (-1, 0)
+        elif event.keysym == 'Right':
+            self.had.smer = (1, 0)
+
+        if not self.pohyb_cekajici:
+            self.aktualizuj_hru()
+
+    def aktualizuj_hru(self):
+        self.pohyb_cekajici = True  
+        self.had.pohyb()
+
+        self.had.kolize()
+
+        if self.had.telo[0] == self.jidlo.pozice:
+            self.had.zvetseni()
+            self.jidlo.nove_jidlo()
+
+        self.vykresli_hraci_pole()
+
+        self.pohyb_cekajici = False
+
+    def vykresli_hraci_pole(self):
         self.canvas.delete("all")
-        #vykresli hada
-        for x,y in self.snake.position:
-            x1=x*cell
-            y1=y*cell
-            x2=x1+cell
-            y2=y1+cell
-            self.canvas.create_rectangle(x1,y1,x2,y2, fill="green")
 
-        #vykres jidla
-        food_x, food_y = self.food.position
-        x1=food_x*cell
-        y1=food_y*cell
-        x2=x1+cell
-        y2=y1+cell
-        self.canvas.create_rectangle(x1,y1,x2,y2, fill="blue")
+        for (x, y) in self.had.telo:
+            x1 = x * VELIKOST_BUNKY 
+            y1 = y * VELIKOST_BUNKY 
+            x2 = x1 + VELIKOST_BUNKY 
+            y2 = y1 + VELIKOST_BUNKY 
+            self.canvas.create_rectangle(x1, y1, x2, y2, fill="green")
 
+        jidlo_x, jidlo_y = self.jidlo.pozice
+        x1 = jidlo_x * VELIKOST_BUNKY
+        y1 = jidlo_y * VELIKOST_BUNKY
+        x2 = x1 + VELIKOST_BUNKY
+        y2 = y1 + VELIKOST_BUNKY
+        self.canvas.create_oval(x1, y1, x2, y2, fill="red")
 
-    def change_direct(self, event): #event predava info co bylo zmacknuto
-        
-        if event.keysym == "s" or event.keysym == "Down":
-            self.snake.change_direct((1,0))
-        elif event.keysym == "w" or event.keysym == "Up":
-            self.snake.change_direct((0,-1))
-        elif event.keysym == "d" or event.keysym == "Right":
-            self.snake.change_direct((0,1))
-        elif event.keysym == "a" or event.keysym == "Left":
-            self.snake.change_direct((-1,0))
-
-
-    def reload_game(self):
-        self.waiting = True
-
-        self.snake.move
-        
-        if self.snake.position[0] == self.food.position:
-            self.food.new_food()
-            self.snake.nomnomnom()
-        self.new_field()
-        self.waiting = False
-
-root=tk.Tk()
-root.title("Snake")
-root.mainloop()
-game=Game(root)
+root = tk.Tk() 
+root.title("Had v Tkinteru")
+hra = Hra(root)
+root.mainloop() 
